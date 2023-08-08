@@ -6,13 +6,24 @@ module.exports = (env, options) => {
     const isDevelopment = options.mode === 'development';
 
     return {
-        entry: './path-to-your-entry-file.js', // Giriş dosyanızın yolu
+        entry: './views/index.ejs', // Ana EJS dosyanızın yolu
         output: {
             filename: 'bundle.js',
             path: path.resolve(__dirname, 'dist')
         },
         module: {
             rules: [
+                {
+                    test: /\.ejs$/,
+                    use: [
+                        {
+                            loader: 'ejs-loader',
+                            options: {
+                                esModule: false
+                            }
+                        }
+                    ]
+                },
                 {
                     test: /\.js$/,
                     exclude: /node_modules/,

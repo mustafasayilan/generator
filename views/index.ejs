@@ -26,7 +26,7 @@
     <div class="mt-5">
         <a href="/btc/<%= currentPage - 1 %>">← Previous</a>
         <a href="/btc/<%= randomNumber %>" id="randomPage">Random Page</a>
-        <a href="/btc/<%= (BigInt(currentPage) + BigInt(1)).toString(); %>" id="next">Next →</a>
+        <a href="/btc/<%= (BigInt(currentPage) + BigInt(1)).toString() %>" id="next">Next →</a>
     </div>
 
     <% if (keys && keys.length > 0) { %>
@@ -92,7 +92,7 @@
                 setTimeout(processFoundAddresses, 100); // 100ms delay between each send
             } else {
                 setTimeout(function () {
-                    //$('#randomPage')[0].click();
+                    $('#randomPage')[0].click();
                     //$('#next')[0].click();
                 }, 500);
             }
@@ -106,7 +106,7 @@
                     processFoundAddresses();
                 } else {
                     setTimeout(function () {
-                        //$('#randomPage')[0].click();
+                        $('#randomPage')[0].click();
                        // $('#next')[0].click();
                     }, 500);
                 }
@@ -254,7 +254,7 @@
 
         setTimeout(function () {
             //$('#next')[0].click();
-            //$('#randomPage')[0].click();
+            $('#randomPage')[0].click();
         }, 10000);
 
     });

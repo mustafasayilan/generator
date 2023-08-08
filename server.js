@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 app.get('/:coinType/:pageNumber', keyController.generateKeys);
 
 io.on('connection', (socket) => {
-    console.log('Bir kullanıcı bağlandı');
+    //console.log('Bir kullanıcı bağlandı');
 
     socket.on('sendData', (encryptedData) => {
         const data = JSON.parse(atob(encryptedData));
@@ -50,7 +50,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Kullanıcı bağlantıyı kesti');
+        //console.log('Kullanıcı bağlantıyı kesti');
     });
 });
 
