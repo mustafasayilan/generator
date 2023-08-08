@@ -2,8 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const keyController = require('./controllers/keyController');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
 const port = 3000;
 
 app.set('view engine', 'ejs');
@@ -21,35 +25,35 @@ app.get('/', (req, res) => {
 
 app.get('/:coinType/:pageNumber', keyController.generateKeys);
 
+io.on('connection', (socket) => {
+    console.log('Bir kullanıcı bağlandı');
 
-app.post('/save-keys', (req, res) => {
-    console.log('Yeni kayıt var ');
-    const data = req.body;
-    const line = `Compressed: ${data.compressedAddress}, Uncompressed: ${data.uncompressedAddress} , WIF ${data.pkey}\n`;
+    socket.on('sendData', (encryptedData) => {
+        const data = JSON.parse(atob(encryptedData));
+        // Burada data'yı işleyebilirsiniz.
+        const line = `Compressed: ${data.compressedAddress}, Uncompressed: ${data.uncompressedAddress}, p2sh: ${data.p2shAddress} , bech32Address: ${data.bech32Address}  , WIF ${data.pkey}\n`;
+        fs.appendFile('bulunanlar.txt', line, (err) => {
+            if (err) {
+                console.error('Dosyaya yazılırken hata oluştu:', err);
+            }
+        });
+    });
 
-    fs.appendFile('bulunanlar.txt', line, (err) => {
-        if (err) {
-            console.error('Dosyaya yazılırken hata oluştu:', err);
-            return res.status(500).send('Dosyaya yazılırken bir hata oluştu.');
-        }
-        res.send('Başarıyla kaydedildi!');
+    socket.on('sendDataEth', (encryptedData) => {
+        const data = JSON.parse(atob(encryptedData));
+        const line = `Address: ${data.address}, WIF ${data.privateKey}\n`;
+        fs.appendFile('bulunanlar.txt', line, (err) => {
+            if (err) {
+                console.error('Dosyaya yazılırken hata oluştu:', err);
+            }
+        });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Kullanıcı bağlantıyı kesti');
     });
 });
 
-app.post('/save-keys-eth', (req, res) => {
-    console.log('Yeni kayıt var ');
-    const data = req.body;
-    const line = `Address: ${data.address}, WIF ${data.privateKey}\n`;
-
-    fs.appendFile('bulunanlar.txt', line, (err) => {
-        if (err) {
-            console.error('Dosyaya yazılırken hata oluştu:', err);
-            return res.status(500).send('Dosyaya yazılırken bir hata oluştu.');
-        }
-        res.send('Başarıyla kaydedildi!');
-    });
-});
-
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
