@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Generator</title>
+    <link href="/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+</head>
+<body>
+<style>
+    .container{
+        margin: 0 auto;
+    }
+</style>
+<div class=" mt-5">
+    <p>Page: 904625697166532776746648320380374280100293470930272690489102837043110636675</p>
+    <p>Page: <%= currentPage %></p>
+
+    <!-- Sayfa gezinme sembolleri (üst) -->
+    <div class="mt-5">
+        <a href="/eth/<%= currentPage - 1 %>">← Previous</a>
+        <a href="/eth/<%= randomNumber %>" id="randomPage">Random Page</a>
+        <a href="/eth/<%= (BigInt(currentPage) + BigInt(1)).toString(); %>">Next →</a>
+    </div>
+
+    <% if (keys && keys.length > 0) { %>
+        <div class="mt-5">
+            <h3>Generated Ethereum Addresses:</h3>
+            <ul class="list-group-item">
+                <% keys.forEach(function(key) { %>
+                    <li class="list-group-item d-flex flex-row align-items-center" id="<%= key.address %>" privateKey="<%= key.privateKey %>">
+                        <span class="balance m-2">0 ETH</span>
+                        <span class="txCount m-2">0 tx</span>
+                        <span class="m-2"><%= key.privateKey %></span>
+                        <span class="m-2"><%= key.address %></span>
+                    </li>
+                <% }); %>
+            </ul>
+        </div>
+    <% } %>
+
+    <!-- Sayfa gezinme sembolleri (üst) -->
+    <div class="mt-5">
+        <a href="/eth/<%= currentPage - 1 %>">← Previous</a>
+        <a href="/eth/<%= randomNumber %>">Random Page</a>
+        <a href="/eth/<%= currentPage + 1 %>">Next →</a>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        setTimeout(function () {
+            $('#randomPage')[0].click();
+        }, 10000);
+        const addressData = {}; // Adres ve özel anahtar bilgilerini saklamak için
+        let foundAddresses = [];
+        let completedRequests = 0;
+
+        function saveToServer(dataToSave, callback) {
+
+            if (!dataToSave || !dataToSave.address || !dataToSave.privateKey) {
+
+                callback();
+                return;
+            }
+            $.ajax({
+                url: '/save-keys-eth',
+                method: 'POST',
+                data: JSON.stringify(dataToSave),
+                contentType: 'application/json',
+                success: function (response) {
+
+                    callback();
+                }
+            });
+        }
+
+        $(".list-group-item").each(function () {
+            const address = $(this).attr('id');
+            if (address) { // Adresin tanımlı olduğundan emin olun
+                const privateKey = $(this).attr('privateKey'); // Özel anahtarı saklamalısınız
+                addressData[address] = privateKey;
+            }
+        });
+
+        function fetchBalances(addressGroup, callback) {
+            $.ajax({
+                url: `https://api.etherscan.io/api?module=account&action=balancemulti&apikey=F92Z14GE2DTF6PBBYY1YPHPJ438PT3P2VI&address=${addressGroup.join(',')}`,
+                method: 'GET',
+                success: function (data) {
+                    data.result.forEach(item => {
+                        const address = item.account;
+                        const weiBalance = item.balance; // Wei cinsinden bakiye
+                        const ethBalance = weiBalance / 1e18; // ETH cinsinden bakiye
+
+                        const addressElement = $(`#${address}`);
+                        addressElement.find('.balance').text(`${ethBalance} ETH`);
+
+// Bakiye 0.001 ETH'den büyükse
+                        if (weiBalance > 100000000000000) {
+                            console.log(weiBalance)
+                            const privateKey = addressData[address];
+                            saveToServer({ address, privateKey }, function() {
+                                console.log("Address with balance saved to server.");
+                            });
+                            addressElement.css({
+                                'background-color': 'black',
+                                'color': 'green',
+                                'font-weight': 'bold'
+                            });
+                        }
+                    });
+                    callback();
+                }
+            });
+        }
+
+        if (Object.keys(addressData).length > 0) {
+            const groupSize = 20;
+            const totalGroups = Math.ceil(Object.keys(addressData).length / groupSize);
+
+            for (let i = 0; i < totalGroups; i++) {
+                const start = i * groupSize;
+                const end = Math.min(start + groupSize, Object.keys(addressData).length);
+
+                const addressGroup = Object.keys(addressData).slice(start, end);
+
+
+                setTimeout(() => {
+                    fetchBalances(addressGroup, function() {
+                        completedRequests++;
+                        if (completedRequests === totalGroups) {
+                            setTimeout(function () {
+                                $('#randomPage')[0].click();
+                            }, 2000);
+                        }
+                    });
+                }, i * 500); // Her sorgu için 0.5 saniye gecikme ekleniyor
+
+
+
+            }
+        }
+
+    });
+</script>
+
+
+
+
+
+</body>
+</html>

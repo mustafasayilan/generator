@@ -1,0 +1,21 @@
+{
+  "name": "keys-generator",
+  "version": "1.0.0",
+  "description": "This repository contains the key generator for [Keys.lol](https://keys.lol)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "big-integer": "^1.6.51",
+    "bitcoinjs-lib": "^4.0.3",
+    "bootstrap": "^5.3.1",
+    "ejs": "^3.1.9",
+    "ethereumjs-util": "^7.1.5",
+    "express": "^4.18.2",
+    "jquery": "^3.7.0"
+  }
+}

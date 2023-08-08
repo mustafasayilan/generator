@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Generator</title>
+    <link href="/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+</head>
+<body>
+<style>
+    .container{
+        margin: 0 auto;
+    }
+</style>
+<div class=" mt-5">
+    <h1 style="display: none;color:darkred;" class="bulduk">BULDUKKKKKKKK</h1>
+</div>
+<div class=" mt-5">
+    <p>Page: 904625697166532776746648320380374280100293470930272690489102837043110636675</p>
+    <p>Page: <%= currentPage %></p>
+
+    <!-- Sayfa gezinme sembolleri (üst) -->
+    <div class="mt-5">
+        <a href="/btc/<%= currentPage - 1 %>">← Previous</a>
+        <a href="/btc/<%= randomNumber %>" id="randomPage">Random Page</a>
+        <a href="/btc/<%= (BigInt(currentPage) + BigInt(1)).toString(); %>" id="next">Next →</a>
+    </div>
+
+    <% if (keys && keys.length > 0) { %>
+        <div class="mt-5">
+            <h3>Generated Keys:</h3>
+            <ul class="list-group">
+                <% keys.forEach(function(key) { %>
+                    <li class="list-group-item d-flex flex-row align-items-center" id="<%= key.compressedAddress %>"
+                        uncomp="<%= key.uncompressedAddress %>" p2shAddress="<%= key.p2shAddress %>"
+                        bech32Address="<%= key.bech32Address %>" pkey="<%= key.wif %>">
+                        <span class="balance m-2">0 btc </span>
+                        <span class="txCount m-2">0 tx</span>
+                        <span class="m-2"><%= key.wif %></span>
+                        <span class="m-2"><%= key.uncompressedAddress %> </span>
+                        <span class="m-2"><%= key.compressedAddress %> </span>
+                        <span class="m-2"><%= key.p2shAddress %> </span>
+                        <span><%= key.bech32Address %> </span>
+                    </li>
+                <% }); %>
+            </ul>
+        </div>
+    <% } %>
+
+    <!-- Sayfa gezinme sembolleri (üst) -->
+    <div class="mt-5">
+        <a href="/btc/<%= currentPage - 1 %>">← Previous</a>
+        <a href="/btc/<%= randomNumber %>">Random Page</a>
+        <a href="/btc/<%= currentPage + 1 %>">Next →</a>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        const addresses = [];
+        const uaddresses = [];
+        const p2shAddress = [];
+        const bech32Address = [];
+        let foundAddresses = [];
+        let completedRequests = 0;
+
+        function saveToServer(dataToSave, callback) {
+            if (!dataToSave || !dataToSave.compressedAddress || !dataToSave.uncompressedAddress) {
+                callback();
+                return;
+            }
+            $.ajax({
+                url: '/save-keys',
+                method: 'POST',
+                data: JSON.stringify(dataToSave),
+                contentType: 'application/json',
+                success: function (response) {
+                    console.log(response);
+                    callback();
+                }
+            });
+        }
+
+        $(".list-group-item").each(function () {
+            addresses.push($(this).attr('id'));
+            uaddresses.push($(this).attr('uncomp'));
+            p2shAddress.push($(this).attr('p2shAddress'));
+            bech32Address.push($(this).attr('bech32Address'));
+        });
+
+        function processFoundAddresses() {
+            if (foundAddresses.length > 0) {
+                const dataToSave = foundAddresses.pop();
+                saveToServer(dataToSave, processFoundAddresses);
+                $(".bulduk").show();
+            } else {
+                setTimeout(function () {
+                    //$('#randomPage')[0].click();
+                    $('#next')[0].click();
+                }, 500);
+            }
+        }
+
+        function checkFound() {
+            completedRequests++;
+            if (completedRequests === 4) {
+                if (foundAddresses.length > 0) {
+                    processFoundAddresses();
+                } else {
+                    setTimeout(function () {
+                        //$('#randomPage')[0].click();
+                        $('#next')[0].click();
+                    }, 500);
+                }
+            }
+        }
+
+        if (addresses.length > 0) {
+            $.ajax({
+                url: `https://blockchain.info/balance?cors=true&active=${addresses.join(',')}`,
+                method: 'GET',
+                success: function (data) {
+                    for (let address in data) {
+                        const balance = data[address].final_balance;
+                        const txCount = data[address].n_tx;
+
+                        const addressElement = $(`#${address}`);
+                        addressElement.find('.balance').text(`${balance} btc`);
+                        addressElement.find('.txCount').text(`${txCount} tx`);
+
+                        if (txCount > 0 || balance > 0) {
+                            foundAddresses.push({
+                                compressedAddress: addressElement.attr('id'),
+                                uncompressedAddress: addressElement.attr('uncomp'),
+                                pkey: addressElement.attr('pkey')
+                            });
+                            addressElement.css({
+                                'background-color': 'black',
+                                'color': balance > 0 ? 'green' : 'red',
+                                'font-weight': 'bold'
+                            });
+                        }
+                    }
+                    checkFound();
+                }
+            });
+        }
+
+        if (uaddresses.length > 0) {
+            $.ajax({
+                url: `https://blockchain.info/balance?cors=true&active=${uaddresses.join(',')}`,
+                method: 'GET',
+                success: function (data) {
+                    for (let uaddress in data) {
+                        const ubalance = data[uaddress].final_balance;
+                        const utxCount = data[uaddress].n_tx;
+
+                        const addressElement = $(`#${uaddress}`);
+                        addressElement.find('.balance').text(`${ubalance} btc`);
+                        addressElement.find('.txCount').text(`${utxCount} tx`);
+
+                        if (ubalance > 0) {
+                            foundAddresses.push({
+                                compressedAddress: addressElement.attr('id'),
+                                uncompressedAddress: addressElement.attr('uncomp'),
+                                pkey: addressElement.attr('pkey')
+                            });
+                            addressElement.css({
+                                'background-color': 'black',
+                                'color': ubalance > 0 ? 'green' : 'red',
+                                'font-weight': 'bold'
+                            });
+                        }
+                    }
+                    checkFound();
+                }
+            });
+        }
+
+        if (p2shAddress.length > 0) {
+            $.ajax({
+                url: `https://blockchain.info/balance?cors=true&active=${p2shAddress.join(',')}`,
+                method: 'GET',
+                success: function (data) {
+                    for (let p2sh in data) {
+                        const p2shbalance = data[p2sh].final_balance;
+                        const p2shtxCount = data[p2sh].n_tx;
+
+                        //const addressElement = $(`#${p2sh}`);
+                        const addressElement = $('[p2shAddress="' + p2sh + '"]');
+                        addressElement.find('.balance').text(`${p2shbalance} btc`);
+                        addressElement.find('.txCount').text(`${p2shtxCount} tx`);
+
+                        if (p2shbalance > 0) {
+                            console.log(p2shtxCount + addressElement.attr('p2shAddress'))
+                            foundAddresses.push({
+                                compressedAddress: addressElement.attr('p2shAddress'),
+                                uncompressedAddress: addressElement.attr('bech32Address'),
+                                pkey: addressElement.attr('pkey')
+                            });
+                            addressElement.css({
+                                'background-color': 'black',
+                                'color': p2shbalance > 0 ? 'green' : 'red',
+                                'font-weight': 'bold'
+                            });
+                        }
+                    }
+                    checkFound();
+                }
+            });
+        }
+
+
+        if (bech32Address.length > 0) {
+            $.ajax({
+                url: `https://blockchain.info/balance?cors=true&active=${bech32Address.join(',')}`,
+                method: 'GET',
+                success: function (data) {
+                    for (let bech32s in data) {
+                        const bech32balance = data[bech32s].final_balance;
+                        const bech32txCount = data[bech32s].n_tx;
+
+                        const addressElement = $('[bech32Address="' + bech32s + '"]');
+                        addressElement.find('.balance').text(`${bech32balance} btc`);
+                        addressElement.find('.txCount').text(`${bech32txCount} tx`);
+
+                        if (bech32balance > 0) {
+                            foundAddresses.push({
+                                compressedAddress: addressElement.attr('bech32Address'),
+                                uncompressedAddress: addressElement.attr('p2shAddress'),
+                                pkey: addressElement.attr('pkey')
+                            });
+                            addressElement.css({
+                                'background-color': 'black',
+                                'color': bech32balance > 0 ? 'green' : 'red',
+                                'font-weight': 'bold'
+                            });
+                        }
+                    }
+                    checkFound();
+                }
+            });
+        }
+
+        setTimeout(function () {
+            $('#next')[0].click();
+            //$('#randomPage')[0].click();
+        }, 10000);
+
+    });
+
+</script>
+
+
+</body>
+</html>
